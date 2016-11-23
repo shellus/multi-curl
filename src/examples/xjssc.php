@@ -12,29 +12,29 @@ $m = new \MultiCurl\MultiCurl();
 function postxjflcp($i){
     $url = 'http://www.xjflcp.com/game/SelectDate';
     $data = ['selectDate'=>'20161122'];
-
     $request = new MultiCurl\FormRequest($url, $data);
-
-    $request['id'] = $i;
-    $request -> setClosure(function (\MultiCurl\JsonResponse $response, $request){
-        var_dump('id: ' . $request['id'], 'content: ' . substr($response -> getContent(),0, 200));
-    });
-
+    $request -> setClosure('handleResult');
     return $request;
 }
 
 
 function getstackoverflow($i){
     $url = 'http://stackoverflow.com/questions/1225409/how-to-switch-from-post-to-get-in-php-curl';
-
     $request = new MultiCurl\Request($url);
-
-    $request['id'] = $i;
-    $request -> setClosure(function (\MultiCurl\Response $response, $request){
-        var_dump('id: ' . $request['id'], 'content: ' . substr($response -> getContent(),0, 200));
-    });
-
+    $request -> setClosure('handleResult');
     return $request;
+}
+
+function handleResult(\MultiCurl\Response $response){
+    $info = $response -> getInfo();
+
+
+    $text = substr($response -> getContent(), 0, 200);
+    $text = str_replace("\r\n", "\n", $text);
+    $text = str_replace("\n", "", $text);
+
+
+    var_dump('url: ' . $info['url'], 'content: ' . $text);
 }
 
 

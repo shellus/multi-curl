@@ -124,8 +124,14 @@ class MultiCurl
                     break;
             }
 
+
             $response = new $responseClass(curl_multi_getcontent($request -> getHandle()));
-            call_user_func($request -> getClosure(), $response, $request);
+
+            /** @var Response $response */
+            $response -> setInfo(curl_getinfo($request->getHandle()));
+            $response -> setRequest($request);
+
+            call_user_func($request -> getClosure(), $response);
         }
 
     }

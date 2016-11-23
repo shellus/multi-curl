@@ -5,13 +5,12 @@
  * Date: 2016/11/22
  * Time: 17:04
  */
-class Request implements \ArrayAccess
+class Request
 {
     protected $url;
     protected $method = 'GET';
 
-    /** @var array $data  */
-    protected $data = [];
+
     /** @var string $body */
     protected $body;
     /** @var array 缺省Header */
@@ -34,10 +33,12 @@ class Request implements \ArrayAccess
      * @param string $url
      * @param string $body
      */
-    public function __construct($url = '', $body = '')
+    public function __construct($url = '', $body = null)
     {
         $this->url = $url;
-        $this->body = $body;
+        if (!empty($body)){
+            $this->body = $body;
+        }
     }
 
     /**
@@ -72,67 +73,6 @@ class Request implements \ArrayAccess
         return $this->url;
     }
 
-    /**
-     * Whether a offset exists
-     * @link http://php.net/manual/en/arrayaccess.offsetexists.php
-     * @param mixed $offset <p>
-     * An offset to check for.
-     * </p>
-     * @return boolean true on success or false on failure.
-     * </p>
-     * <p>
-     * The return value will be casted to boolean if non-boolean was returned.
-     * @since 5.0.0
-     */
-    public function offsetExists($offset)
-    {
-        return key_exists($offset, $this->data);
-    }
-
-    /**
-     * Offset to retrieve
-     * @link http://php.net/manual/en/arrayaccess.offsetget.php
-     * @param mixed $offset <p>
-     * The offset to retrieve.
-     * </p>
-     * @return mixed Can return all value types.
-     * @since 5.0.0
-     */
-    public function offsetGet($offset)
-    {
-        return $this->data[$offset];
-    }
-
-    /**
-     * Offset to set
-     * @link http://php.net/manual/en/arrayaccess.offsetset.php
-     * @param mixed $offset <p>
-     * The offset to assign the value to.
-     * </p>
-     * @param mixed $value <p>
-     * The value to set.
-     * </p>
-     * @return void
-     * @since 5.0.0
-     */
-    public function offsetSet($offset, $value)
-    {
-        $this->data[$offset] = $value;
-    }
-
-    /**
-     * Offset to unset
-     * @link http://php.net/manual/en/arrayaccess.offsetunset.php
-     * @param mixed $offset <p>
-     * The offset to unset.
-     * </p>
-     * @return void
-     * @since 5.0.0
-     */
-    public function offsetUnset($offset)
-    {
-        unset($this->data[$offset]);
-    }
 
     /**
      * @return mixed
