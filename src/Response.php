@@ -2,8 +2,8 @@
 /**
  * Created by PhpStorm.
  * User: shellus-out
- * Date: 2016/11/23
- * Time: 9:46
+ * Date: 2016/11/25
+ * Time: 14:17
  */
 
 namespace MultiCurl;
@@ -11,76 +11,56 @@ namespace MultiCurl;
 
 class Response
 {
-    protected $contentType = 'text/html';
-    protected $content = '';
-    protected $info = [];
-    /** @var array $data  */
-    protected $data = [];
+    protected $statusCode;
+    protected $url;
+    protected $headers;
+    protected $body;
 
-    /** @var  Request $request */
-    protected $request;
-
-    public function __construct($content)
+    public function __construct($url, $body = '', $headers = [], $statusCode = 200)
     {
-        $this -> content = $content;
+        $this -> statusCode = $statusCode;
+        $this -> url = $url;
+        $this -> headers = $headers;
+        $this -> body = $body;
+//        var_dump($url, strlen($body), $headers, $statusCode);
+    }
+
+    static public function createByCurlHandle($ch, $response){
+
+        $url = curl_getinfo($ch, CURLINFO_EFFECTIVE_URL);
+        $header_size = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
+        $header_str = substr($response, 0, $header_size);
+        $body = substr($response, $header_size);
+
+        $header_str = @end(explode("\r\n\r\n", trim($header_str)));
+
+//        file_put_contents($this -> tmp_path . '/header_str.html', $header_str);
+//        file_put_contents($this -> tmp_path . '/body.html', $body);
+//        var_dump(curl_getinfo($ch, CURLINFO_HEADER_OUT));
+
+        $headers = [];
+        $statusCode = 200;
+
+        foreach (explode("\r\n", trim($header_str)) as $i => $line){
+            if($i === 0){
+                list($httpVersion, $statusCode, $statusStr) = explode(' ', $line);
+
+            }else{
+                $key = substr($line, 0, $gap = strpos($line, ": "));
+                $value = substr($line, $gap+2);
+                $headers[$key] = $value;
+            }
+        }
+        return new Response($url, $body, $headers, $statusCode);
     }
 
     /**
      * @return string
      */
-    public function getContent()
+    public function getBody()
     {
-        return $this->content;
+        return $this->body;
     }
 
-    /**
-     * @param string $content
-     */
-    public function setContent($content)
-    {
-        $this->content = $content;
-    }
-
-    public function saveToFile($file){
-        return file_put_contents($file, $this -> getContent());
-    }
-
-
-    public function __toString()
-    {
-        return $this -> content;
-    }
-
-    /**
-     * @return array
-     */
-    public function getInfo()
-    {
-        return $this->info;
-    }
-
-    /**
-     * @param array $info
-     */
-    public function setInfo($info)
-    {
-        $this->info = $info;
-    }
-
-    /**
-     * @return Request
-     */
-    public function getRequest()
-    {
-        return $this->request;
-    }
-
-    /**
-     * @param Request $request
-     */
-    public function setRequest($request)
-    {
-        $this->request = $request;
-    }
 
 }
