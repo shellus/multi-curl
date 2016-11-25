@@ -3,8 +3,13 @@ PHP异步CURL，轻易的在PHP中进行并发的http请求，可用于针对复
 
 ### 特点
  - 自动的编码解码，使用`FormRequest`来自动编码form表单提交，使用JsonResponse来自动解码返回的json数据
- - 
+ - 和其他压力测试工具不同，本公举支持POST、请求构造等特性。
 
+### 安装
+
+```bash
+composer require shellus/multi-curl
+```
 
 ### 示例代码
 
@@ -17,7 +22,6 @@ PHP异步CURL，轻易的在PHP中进行并发的http请求，可用于针对复
  * Time: 10:16
  */
 
-require __DIR__ . '/bootstrap.php';
 // 处理接收到的数据
 function handleResult(\MultiCurl\Response $response){
     $info = $response -> getInfo();
