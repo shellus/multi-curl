@@ -8,25 +8,27 @@
 
 require __DIR__ . '/vendor/autoload.php';
 
-$url = 'http://blog.endaosi.com/index.php/action/login?_=f2120c9d16a7cf9af721e0fa59f318f9';
+$url = 'http://127.0.0.1/test.php';
 $from = [
-    'name' => 'shellus',
+    'name' => 'shellus@endaosi.com',
     'password' => 'a7245810',
     'referer' => 'http://blog.endaosi.com/admin/',
 ];
+$headers = [
+    'Host' => 'shuoxingba.localhost'
+];
 
-
-$req = new MultiCurl\FormRequest($url, $from);
+$req = new MultiCurl\Request($url, 'GET','', $headers);
 
 
 // 同步
-echo $req -> sendWithCurl() ->getBody();
+//echo $req -> sendWithCurl() ->getBody();
 
 // 异步
-//$m = new \MultiCurl\MultiCurl();
-//$req -> sendWithMultiCurl($m, function(\MultiCurl\Response $response){
-//    echo $response -> getBody();
-//});
-//$m -> exec();
+$m = new \MultiCurl\MultiCurl();
+$req -> sendWithMultiCurl($m, function(\MultiCurl\Response $response){
+    echo $response -> getBody();
+});
+$m -> exec();
 
 

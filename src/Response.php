@@ -15,14 +15,16 @@ class Response
     protected $url;
     protected $headers;
     protected $body;
+    /** @var  Cookie $cookie */
+    protected $cookie;
 
-    public function __construct($url, $body = '', $headers = [], $statusCode = 200)
+    public function __construct($url, $body = '', $headers = [], Cookie $cookie, $statusCode = 200)
     {
         $this -> statusCode = $statusCode;
         $this -> url = $url;
         $this -> headers = $headers;
         $this -> body = $body;
-//        var_dump($url, strlen($body), $headers, $statusCode);
+        $this -> cookie = $cookie;
     }
 
     static public function createByCurlHandle($ch, $response){
@@ -48,10 +50,15 @@ class Response
             }else{
                 $key = substr($line, 0, $gap = strpos($line, ": "));
                 $value = substr($line, $gap+2);
-                $headers[$key] = $value;
+
+                if (in_array($key,['Set-Cookie'])){
+                    $headers[$key][] = $value;
+                }else{
+                    $headers[$key] = $value;
+                }
             }
         }
-        return new Response($url, $body, $headers, $statusCode);
+        return new Response($url, $body, $headers, Cookie::createByHeader($headers['Set-Cookie']), $statusCode);
     }
 
     /**
@@ -62,5 +69,20 @@ class Response
         return $this->body;
     }
 
+    /**
+     * @return mixed
+     */
+    public function getUrl()
+    {
+        return $this->url;
+    }
+
+    /**
+     * @return Cookie
+     */
+    public function getCookie()
+    {
+        return $this->cookie;
+    }
 
 }

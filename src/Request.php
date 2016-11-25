@@ -33,33 +33,18 @@ class Request
 
     }
 
-    private function getCurlCookieFileName(){
-        $tmp_path = __DIR__;
-        // check permission
-        if(!is_writable($tmp_path)){
-            throw new \Exception();
-        }
-        return $tmp_path . '/cookie_' . getmypid() . '.txt';
-    }
     /**
      * @param $cookie_file
      * @return resource
      */
     private function createCh()
     {
-        $cookie_file = $this -> getCurlCookieFileName();
-        touch($cookie_file);
 
         $ch = curl_init();
-        curl_setopt($ch, CURLOPT_COOKIEJAR, $cookie_file); // 写到这
-        curl_setopt($ch, CURLOPT_COOKIEFILE, $cookie_file); // 读取这
         curl_setopt($ch, CURLOPT_FORBID_REUSE, false); // 长连接
-
         curl_setopt($ch, CURLOPT_URL, $this -> url);
-
         // 这个坑爹的，竟然遇到302跳转还是去POST跳转
 //        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $this -> method);
-
         if($this -> method == "POST"){
             curl_setopt($ch, CURLOPT_POST, 1);
         }else{
@@ -80,9 +65,7 @@ class Request
     }
 
     private function closeCh($ch){
-        $cookie_file = $this -> getCurlCookieFileName();
         curl_close($ch);
-        unlink($cookie_file);
     }
 
     public function getHeadersForCurl()
