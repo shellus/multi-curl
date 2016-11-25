@@ -12,8 +12,15 @@ class MultiCurl
     /** @var Request[] $requests */
     protected $requests = [];
 
+    /** @var \SplQueue $queue */
+    protected $queue;
+
+    /** @var int $maxConcurrency 最大并发数 */
+    protected $maxConcurrency = 10;
+
     public function __construct()
     {
+        $this -> queue = new \SplQueue();
         $this->master = curl_multi_init();
     }
 
@@ -26,8 +33,13 @@ class MultiCurl
         curl_multi_close($this->master);
     }
 
-    public function addRequest(Request $request)
+    public function pushRequest(Request $request)
     {
+        $this -> queue -> push($request);
+        return true;
+    }
+
+    public function joinRequest(Request $request){
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $request->getUrl()); // set url
 
@@ -41,7 +53,7 @@ class MultiCurl
         curl_multi_add_handle($this->master, $ch);
 
         $request->setHandle($ch);
-        $this->requests[] = $request;
+        $this -> requests[] = $request;
         return true;
     }
 
@@ -52,6 +64,12 @@ class MultiCurl
      */
     public function exec()
     {
+
+        for ($i=0;$i<$this -> maxConcurrency;$i++){
+            if($nextRequest = $this -> queue -> pop()){
+                $this -> joinRequest($nextRequest);
+            }
+        }
         /** @var resource $mh curl句柄 */
         $mh = $this->master;
 
@@ -92,9 +110,15 @@ class MultiCurl
             // 如果上面的信号有了，那这里就要一直拿数据。因为可能有1-N个请求响应完成
             while ($info = curl_multi_info_read($mh)) {
                 if ($info["result"] == CURLE_OK) {
-                    foreach ($this->requests as $request) {
+                    foreach ($this->requests as $key => $request) {
                         if ($request->getHandle() === $info['handle']) {
+                            unset($this -> requests[$key]);
+                            if($nextRequest = $this -> queue -> pop()){
+                                $this -> joinRequest($nextRequest);
+                            }
                             $this -> callanle($request);
+                            curl_multi_remove_handle($this -> master, $request -> getHandle());
+
                             break;
                         }
                     }
