@@ -1,15 +1,4 @@
-# Multi-curl
-PHP异步CURL，轻易的在PHP中进行并发的http请求，可用于针对复杂接口的压力测试
-
-### 特点
- - 自动的编码解码，使用`FormRequest`来自动编码form表单提交，使用JsonResponse来自动解码返回的json数据
- - 
-
-
-### 示例代码
-
-```php
-
+<?php
 /**
  * 单请求多并发示例
  * User: shellus-out
@@ -42,11 +31,3 @@ for($i =0; $i < 10; $i++){
 }
 
 $m -> exec();
-
-
-
-```
-更多例子请查阅`examples`文件夹
-
-### 本项目参考了以下页面
- - php curl文档 ： http://php.net/manual/en/function.curl-multi-init.php

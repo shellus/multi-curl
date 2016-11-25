@@ -1,12 +1,12 @@
 <?php
 /**
- * Created by PhpStorm.
+ * 多请求多并发示例
  * User: shellus-out
  * Date: 2016/11/23
  * Time: 9:28
  */
 
-require __DIR__ . '/../../vendor/autoload.php';
+require __DIR__ . '/bootstrap.php';
 $m = new \MultiCurl\MultiCurl();
 
 function postxjflcp($i){
@@ -38,8 +38,8 @@ function handleResult(\MultiCurl\Response $response){
 }
 
 
-for($i =0; $i < 10; $i++){
-    $m -> addRequest(postxjflcp($i));
-    $m -> addRequest(getstackoverflow($i));
+for($i =0; $i < 1000; $i++){
+    $m -> pushRequest(postxjflcp($i));
+    $m -> pushRequest(getstackoverflow($i));
 }
 $m -> exec();

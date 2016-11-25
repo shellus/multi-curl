@@ -16,10 +16,11 @@ class MultiCurl
     protected $queue;
 
     /** @var int $maxConcurrency 最大并发数 */
-    protected $maxConcurrency = 10;
+    protected $maxConcurrency = 0;
 
-    public function __construct()
+    public function __construct($maxConcurrency = 100)
     {
+        $this -> maxConcurrency = $maxConcurrency;
         $this -> queue = new \SplQueue();
         $this->master = curl_multi_init();
     }
@@ -66,8 +67,8 @@ class MultiCurl
     {
 
         for ($i=0;$i<$this -> maxConcurrency;$i++){
-            if($nextRequest = $this -> queue -> pop()){
-                $this -> joinRequest($nextRequest);
+            if($this -> queue -> count() !== 0){
+                $this -> joinRequest($this -> queue -> pop());
             }
         }
         /** @var resource $mh curl句柄 */
@@ -113,8 +114,9 @@ class MultiCurl
                     foreach ($this->requests as $key => $request) {
                         if ($request->getHandle() === $info['handle']) {
                             unset($this -> requests[$key]);
-                            if($nextRequest = $this -> queue -> pop()){
-                                $this -> joinRequest($nextRequest);
+
+                            if($this -> queue -> count() !== 0){
+                                $this -> joinRequest($this -> queue -> pop());
                             }
                             $this -> callanle($request);
                             curl_multi_remove_handle($this -> master, $request -> getHandle());
