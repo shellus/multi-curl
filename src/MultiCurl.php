@@ -9,42 +9,29 @@
 class MultiCurl
 {
     protected $master;
-    protected $requests = [];
-    /** @var \SplQueue $queue */
-    protected $queue;
+    protected $curlHandles = [];
 
-    /** @var int $maxConcurrency 最大并发数 */
-    protected $maxConcurrency = 100;
 
-    protected $callback;
-
-    public function __construct($maxConcurrency = 100)
+    public function __construct()
     {
-        $this -> maxConcurrency = $maxConcurrency;
-        $this -> queue = new \SplQueue();
         $this->master = curl_multi_init();
     }
 
     public function __destruct()
     {
-        foreach ($this->requests as $item) {
-            curl_multi_remove_handle($this->master, $item);
+        foreach ($this->curlHandles as $key => $value) {
+            list($ch, $callback, $sign) = $value;
+            curl_multi_remove_handle($this->master, $ch);
         }
         curl_multi_close($this->master);
     }
 
-    public function push($ch)
+    public function join($ch, $callback, $sign = null)
     {
-        $this -> queue -> push($ch);
+        curl_multi_add_handle($this->master, $ch);
+        $this -> curlHandles[] = [$ch, $callback, $sign];
         return true;
     }
-
-    public function join($request){
-        curl_multi_add_handle($this->master, $request);
-        $this -> requests[] = $request;
-        return true;
-    }
-
 
     /**
      * @return bool
@@ -53,17 +40,11 @@ class MultiCurl
     public function exec()
     {
 
-        for ($i=0;$i<$this -> maxConcurrency;$i++){
-            if($this -> queue -> count() !== 0){
-                $this -> join($this -> queue -> pop());
-            }
-        }
         /** @var resource $mh curl句柄 */
         $mh = $this->master;
 
         /** @var int $still_running 仍然运行中的数量 */
         $still_running = 0;
-
 
         do {
             // 开始处理CURL上的子连接
@@ -87,21 +68,8 @@ class MultiCurl
             // 如果上面的信号有了，那这里就要一直拿数据。因为可能有1-N个请求响应完成
             while ($info = curl_multi_info_read($mh)) {
                 if ($info["result"] == CURLE_OK) {
-                    foreach ($this->requests as $key => $ch) {
-                        if ($ch === $info['handle']) {
-                            unset($this -> requests[$key]);
-
-                            if($this -> queue -> count() !== 0){
-                                $this -> join($this -> queue -> pop());
-                            }
-                            call_user_func($this->callback, $ch);
-                            curl_multi_remove_handle($this -> master, $ch);
-                            curl_close($ch);
-                            break;
-                        }
-                    }
+                    $this -> complete($info);
                 } else {
-
 //                    throw new \Exception(curl_error($info['handle']));
                     var_dump(curl_error($info['handle']));
                 }
@@ -110,17 +78,15 @@ class MultiCurl
         return true;
     }
 
-
-    public function temp($ch){
-        curl_getinfo($ch);
-        curl_multi_getcontent($ch);
-    }
-
-    /**
-     * @param mixed $callback
-     */
-    public function setCallback($callback)
-    {
-        $this->callback = $callback;
+    private function complete($info){
+        foreach ($this->curlHandles as $key => $value) {
+            list($ch, $callback, $sign) = $value;
+            if ($ch === $info['handle']) {
+                unset($this -> curlHandles[$key]);
+                call_user_func($callback, $ch, $sign);
+                curl_multi_remove_handle($this -> master, $ch);
+                break;
+            }
+        }
     }
 }

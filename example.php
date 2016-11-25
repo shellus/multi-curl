@@ -14,6 +14,19 @@ $from = [
     'password' => 'a7245810',
     'referer' => 'http://blog.endaosi.com/admin/',
 ];
+
+
 $req = new MultiCurl\FormRequest($url, $from);
 
+
+// 同步
 echo $req -> sendWithCurl() ->getBody();
+
+// 异步
+//$m = new \MultiCurl\MultiCurl();
+//$req -> sendWithMultiCurl($m, function(\MultiCurl\Response $response){
+//    echo $response -> getBody();
+//});
+//$m -> exec();
+
+

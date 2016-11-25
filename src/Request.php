@@ -33,12 +33,23 @@ class Request
 
     }
 
+    private function getCurlCookieFileName(){
+        $tmp_path = __DIR__;
+        // check permission
+        if(!is_writable($tmp_path)){
+            throw new \Exception();
+        }
+        return $tmp_path . '/cookie_' . getmypid() . '.txt';
+    }
     /**
      * @param $cookie_file
      * @return resource
      */
-    public function createCh($cookie_file)
+    private function createCh()
     {
+        $cookie_file = $this -> getCurlCookieFileName();
+        touch($cookie_file);
+
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_COOKIEJAR, $cookie_file); // 写到这
         curl_setopt($ch, CURLOPT_COOKIEFILE, $cookie_file); // 读取这
@@ -68,6 +79,12 @@ class Request
         return $ch;
     }
 
+    private function closeCh($ch){
+        $cookie_file = $this -> getCurlCookieFileName();
+        curl_close($ch);
+        unlink($cookie_file);
+    }
+
     public function getHeadersForCurl()
     {
         return array_map(function($a,$b){
@@ -81,15 +98,8 @@ class Request
      */
     public function sendWithCurl(){
 
-        $tmp_path = __DIR__;
-        // check permission
-        if(!is_writable($tmp_path)){
-            throw new \Exception();
-        }
-        $cookie_file = $tmp_path . '/cookie_' . getmypid() . '.txt';
-        touch($cookie_file);
 
-        $ch = $this -> createCh($cookie_file);
+        $ch = $this -> createCh();
         $body = curl_exec($ch);
 
         if(curl_errno($ch)){
@@ -97,10 +107,22 @@ class Request
         }
         $response = Response::createByCurlHandle($ch, $body);
 
-        curl_close($ch);
-        unlink($cookie_file);
-
+        $this -> closeCh($ch);
         return $response;
     }
 
+    /**
+     * @param MultiCurl $multiCurl
+     * @param $callback
+     * @param null $sign
+     * @throws \Exception
+     */
+    public function sendWithMultiCurl(MultiCurl $multiCurl, $callback, $sign = null){
+        $ch = $this -> createCh();
+        $multiCurl -> join($ch, function($ch, $sign)use($callback){
+            $response = Response::createByCurlHandle($ch, curl_multi_getcontent($ch));
+            $this -> closeCh($ch);
+            call_user_func($callback, $response, $sign);
+        }, $sign);
+    }
 }
