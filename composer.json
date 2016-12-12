@@ -14,5 +14,7 @@
             "MultiCurl\\": "src/"
         }
     },
-    "require": {}
+    "require": {
+        "guzzlehttp/guzzle":"*"
+    }
 }
