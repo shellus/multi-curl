@@ -11,49 +11,101 @@ use GuzzleHttp\Client;
 use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Response;
-use GuzzleHttp\Promise;
 
 require __DIR__ . '/bootstrap.php';
 
 
-// 处理接收到的数据
-function handleResult(Response $response, $index)
+abstract class RequestPool
 {
-    file_put_contents(__DIR__ . '/storage/' . $index . '.json', $response->getBody());
-    var_dump($index);
-}
+    /** @var Client */
+    protected $client;
+    /** @var \GuzzleHttp\Pool */
+    protected $pool;
 
-// 处理接收到的数据
-function handleRequestException(RequestException $e)
-{
-    var_dump( $e->getMessage());
-    var_dump( $e->getRequest()->getMethod());
-}
+    public function __construct()
+    {
+        $this -> client = new Client();
+    }
 
-$client = new Client();
+    /**
+     * 生成请求
+     * @return Generator
+     */
+    abstract public function build_request();
 
-function build_request(){
-    $date = $start_date = "20160221";
-    $end_date = "20161101";
-    while(strtotime($date) < strtotime($end_date)){
+    /**
+     * 处理接收到的数据
+     * @param Response $response
+     * @param $index
+     */
+    abstract public function handleResult(Response $response, $index);
 
-        $url = 'http://www.xjflcp.com/game/SelectDate';
-        $headers = [
-            "Content-Type" => "application/x-www-form-urlencoded; charset=UTF-8",
-        ];
-        $body = \GuzzleHttp\Psr7\build_query(['selectDate' => $date]);
-        $request = new Request('POST', $url, $headers, $body);
-        yield $date => $request;
+    /**
+     * 处理请求错误
+     * @param RequestException $e
+     */
+    public function handleRequestException(RequestException $e)
+    {
+        var_dump($e->getMessage());
+        var_dump($e->getRequest()->getMethod());
+    }
 
-        $timestamp = strtotime("{$date} +1 days");
-        $date = date('Ymd', $timestamp);
+    public function run(){
+        $this -> pool = new \GuzzleHttp\Pool($this -> client, $this -> build_request(), [
+            'concurrency' => 30,
+            'fulfilled' => array($this, 'handleResult'),
+            'rejected' => array($this, 'handleRequestException'),
+        ]);
+        $this -> pool->promise()->wait();
     }
 }
 
 
-$pool = new \GuzzleHttp\Pool($client, build_request(),[
-    'concurrency' => 30,
-    'fulfilled' => 'handleResult',
-    'rejected' => 'handleRequestException',
-]);
-$pool ->promise() -> wait();
+class XJSSCRequestPool extends RequestPool
+{
+
+    /**
+     * 生成请求
+     * @return Generator
+     */
+    public function build_request()
+    {
+        $date = $start_date = "20160221";
+        $end_date = "20161101";
+        while (strtotime($date) < strtotime($end_date)) {
+
+            $url = 'http://www.xjflcp.com/game/SelectDate';
+            $headers = [
+                "Content-Type" => "application/x-www-form-urlencoded; charset=UTF-8",
+            ];
+            $body = \GuzzleHttp\Psr7\build_query(['selectDate' => $date]);
+            $request = new Request('POST', $url, $headers, $body);
+            yield $date => $request;
+
+            $timestamp = strtotime("{$date} +1 days");
+            $date = date('Ymd', $timestamp);
+        }
+    }
+    public function storage($data, $index){
+        file_put_contents(__DIR__ . '/storage/' . $index . '.json', $data);
+        var_dump($index);
+    }
+
+    /**
+     * 处理接收到的数据
+     * @param Response $response
+     * @param $index
+     */
+    public function handleResult(Response $response, $index)
+    {
+        $data = $response->getBody() -> __toString();
+
+
+        $this -> storage(json_encode(json_decode($data), JSON_PRETTY_PRINT), $index);
+    }
+}
+
+
+(new XJSSCRequestPool()) -> run();
+
+
